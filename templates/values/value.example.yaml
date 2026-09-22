@@ -27,7 +27,7 @@ resources:
 # Per-user kubeconfig + gcloud session storage.
 # Mounted at /landskape-sessions so user-sessions.ts (NODE_ENV=production default) picks it up.
 orbitSessions:
-  mountPath: /landskape-sessions
+  mountPath: /orbit-sessions
   pvc:
     enabled: true
     accessMode: ReadWriteMany
