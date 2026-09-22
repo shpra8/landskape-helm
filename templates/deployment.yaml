@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}-{{ .Values.env }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}-{{ .Values.env }}
+    environment_name: {{ .Values.env }}
+    app_name: {{ .Chart.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}-{{ .Values.env }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}-{{ .Values.env }}
+        environment_name: {{ .Values.env }}
+        app_name: {{ .Chart.Name }}
+        ingressgateway: "allow"
+    spec:
+      volumes:
+        - name: env-file
+          secret:
+            secretName: {{ .Values.envSecretName }}
+            items:
+              - key: .env
+                path: .env.production
+        - name: gcp-ksa
+          projected:
+            defaultMode: 420
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  audience: {{ .Values.gcp.workloadIdentityPool.name }}
+                  expirationSeconds: 172800
+              - configMap:
+                  name: orbit-adc-config
+                  optional: false
+                  items:
+                    - key: "config"
+                      path: "google-application-credentials.json"
+        {{- if .Values.orbitSessions.pvc.enabled }}
+        - name: orbit-sessions
+          persistentVolumeClaim:
+            claimName: {{ .Chart.Name }}-{{ .Values.env }}-sessions-pvc
+        {{- end }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ .Values.image.repo }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name }}
+            - name: POD_NAMESPACE
+              valueFrom: { fieldRef: { fieldPath: metadata.namespace }}
+            - name: ENVIRONMENT
+              value: {{ .Values.env }}
+            - name: APP_NAME
+              value: {{ .Chart.Name }}
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/run/secrets/tokens/gcp-ksa/google-application-credentials.json
+            {{- if .Values.orbitSessions.pvc.enabled }}
+            - name: ORBIT_SESSIONS_ROOT
+              value: {{ .Values.orbitSessions.mountPath | default "/orbit-sessions" }}
+            {{- end }}
+          resources:
+            limits: { cpu: {{ .Values.resources.cpu.limit | default "500m" }}, memory: {{ .Values.resources.memory.limit | default "1024Mi" }} }
+            requests: { cpu: {{ .Values.resources.cpu.requests | default "200m" }}, memory: {{ .Values.resources.memory.requests | default "500Mi" }} }
+          volumeMounts:
+            - name: gcp-ksa
+              mountPath: /var/run/secrets/tokens/gcp-ksa
+              readOnly: true
+            - name: env-file
+              mountPath: /app/.env.production
+              subPath: .env.production
+              readOnly: true
+            {{- if .Values.orbitSessions.pvc.enabled }}
+            - name: orbit-sessions
+              mountPath: {{ .Values.orbitSessions.mountPath | default "/orbit-sessions" }}
+            {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000

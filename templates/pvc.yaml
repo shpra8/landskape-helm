@@ -1,0 +1,20 @@
+{{- if .Values.orbitSessions.pvc.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Chart.Name }}-{{ .Values.env }}-sessions-pvc
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}-{{ .Values.env }}
+    environment_name: {{ .Values.env }}
+    app_name: {{ .Chart.Name }}
+spec:
+  accessModes:
+    - {{ .Values.orbitSessions.pvc.accessMode | default "ReadWriteOnce" }}
+  resources:
+    requests:
+      storage: {{ .Values.orbitSessions.pvc.storage | default "5Gi" }}
+  {{- if .Values.orbitSessions.pvc.storageClassName }}
+  storageClassName: {{ .Values.orbitSessions.pvc.storageClassName }}
+  {{- end }}
+{{- end }}

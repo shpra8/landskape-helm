@@ -1,0 +1,4 @@
+apiVersion: v2
+name: ofm-landskape
+description: DEV deployment for OFM microservices core Java
+version: 1.0.0

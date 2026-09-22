@@ -1,0 +1,16 @@
+apiVersion: ingka.com/v1
+kind: Ikeadns
+metadata:
+  name: {{ .Chart.Name }}-{{ .Values.env }}-dns
+  namespace: {{ .Release.Namespace }}
+spec:
+  name: {{ .Chart.Name }}-{{ .Values.env }}
+  highAvailability: {{ .Values.service.highAvailability }}
+  ingressPaths:
+    - backend:
+        service:
+          name: {{ .Chart.Name }}-{{ .Values.env }}-service
+          port:
+            number: {{ .Values.service.port }}
+      path: /
+      pathType: Prefix
