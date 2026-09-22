@@ -1,0 +1,35 @@
+replicaCount: 1
+env: "<env>"                    
+image:
+  pullPolicy: Always
+  repo: <docker-repository-url>
+  tag: "<git-sha-or-tag>"
+envSecretName: <secret-name>
+imagePullSecrets: <image-pull-seceret-name>
+gcp:
+  serviceAccountName: <gcp-orbit-sa-full-email>
+  serviceAccountNameShort: <gcp-orbit-sa>
+  projectID: <gcp-project-id>
+  workloadIdentityPool:
+    name: <wip-name>
+    provider: <wip-provider>
+service:
+  type: ClusterIP
+  port: 3000
+  highAvailability: true
+resources:
+  cpu:
+    limit: "3000m"
+    requests: "500m"
+  memory:
+    limit: "3072Mi"
+    requests: "2560Mi"
+# Per-user kubeconfig + gcloud session storage.
+# Mounted at /landskape-sessions so user-sessions.ts (NODE_ENV=production default) picks it up.
+orbitSessions:
+  mountPath: /landskape-sessions
+  pvc:
+    enabled: true
+    accessMode: ReadWriteMany
+    storage: 3Gi
+    storageClassName: netapp-nas
